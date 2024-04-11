@@ -1,0 +1,32 @@
+- name: Build and Deploy RHEL VMs using Hosted Image Builder
+  become: false
+  gather_facts: false
+  hosts: localhost
+  tasks:
+    - name: Create Image via Hosted Image Builder
+      tags:
+        - image
+      block:
+        - name: Initiate Compose
+          ansible.builtin.import_role:
+            name: hosted_image_builder
+            tasks_from: compose
+
+        - name: Wait for Compose to Complete
+          ansible.builtin.import_role:
+            name: hosted_image_builder
+            tasks_from: wait
+
+        - name: Download Image from Hosted Image Builder
+          ansible.builtin.import_role:
+            name: hosted_image_builder
+            tasks_from: download
+
+    - name: Create Virtual Machines in vCenter
+      tags:
+        - vms
+      block:
+        - name: Deploy OVA and Configure VMs
+          ansible.builtin.include_role:
+            name: vmware_vms
+            tasks_from: create

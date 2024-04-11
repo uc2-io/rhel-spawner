@@ -1,0 +1,50 @@
+- name: Generate Access Token
+  ansible.builtin.uri:
+    body:
+      client_id: rhsm-api
+      grant_type: refresh_token
+      refresh_token: "{{ offline_token }}"
+    body_format: form-urlencoded
+    method: POST
+    url: "{{ image_builder_sso_url }}"
+  register: access_token_results
+
+- name: Wait for Compose to Finish
+  block:
+    - name: Query Compose Status
+      ansible.builtin.uri:
+        headers:
+          Authorization: "Bearer {{ access_token_results.json.access_token }}"
+        method: GET
+        status_code: 200
+        url: "{{ image_builder_api_url }}/composes/{{ compose_id }}"
+      delay: 10
+      register: compose_status_results
+      retries: 120
+      until: |
+        (
+          (compose_status_results.json is defined) and
+          (compose_status_results.json.image_status is defined) and
+          (compose_status_results.json.image_status.upload_status is defined) and
+          (compose_status_results.json.image_status.status | default('') == "success") and
+          (compose_status_results.json.image_status.upload_status.status | default('') == "success")
+        ) or (
+          compose_status_results.status is defined and compose_status_results.status | int == 401
+        )
+  rescue:
+    - name: Query Compose Status Again for Error Code
+      ansible.builtin.uri:
+        headers:
+          Authorization: "Bearer {{ access_token_results.json.access_token }}"
+        method: GET
+        status_code: 200
+        url: "{{ image_builder_api_url }}/composes/{{ compose_id }}"
+      failed_when: false
+      register: compose_status_results
+
+    - name: Continue Waiting if Token Expired
+      ansible.builtin.include_tasks:
+        file: wait.yaml
+      when:
+        - compose_status_results.status is defined
+        - compose_status_results.status | int == 401

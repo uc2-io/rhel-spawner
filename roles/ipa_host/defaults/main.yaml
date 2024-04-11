@@ -1,0 +1,3 @@
+---
+ipa_host_otp_length: 24
+ipa_validate_certs: true

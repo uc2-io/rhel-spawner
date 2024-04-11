@@ -1,0 +1,103 @@
+---
+cleanup_known_hosts: true
+image_properties:
+  cloud_user:
+    public_key: |
+      ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCwU45tZ14b81PybKtTCk4Qr6ZIA6QgO0XknAVqBEV5kAPy9aHB/L99FbIpX6iku5/QRNe7Id68gJW2vl3YRX9xQ2ogV6BFlduGM+4dqeaQ+LeYoaKrVzze/c2GmgepiYGbpOtMA9tfi3QDla2HdW1cA+SXZwl0LjSNcodu5xHNSWUnH2m71+jepwVYx8Q6uWMLab8m1jpPFrXi96aAMsssgxVo72cZNoKCetj5ckfCfh2Th5FeRgCJV9QjOAkSxSjEoa5gtaniVTH6YsmVSS4zAz3hVTlwY3HM2OxMKeHrHbmodGkx9MxC6ET1iDN7ZwfQCIlksY4x0ex/+Jv4qw5GnE0FVbvrzDlqyVDSwuvFWbQVmPobwmzBFEIxyPzeo1JcAHpLHPePadUvJBzlRUCbxZSIvlV3KOKq9EQ/nEhvhWBwEcnBYXvE+lylcH+54Js0qz4cHVVvlINZtEeC++5PFort5jvGHCMHkf4ofMXWtMJ/Zt43POkNG7k/RFRQ/THKkWriFFW7onceIEOWJzg4sCC8/ziQiKMgojkA9emecWuQJyKRKpkcnfR5hrmq3wBV+AWalj+Cs/4HyuHJWdchtCGb6CgcxAM0AknOevpRr/OomXW0JW95/JIxXUB/+X2VH/rO8+YTeeXCAiBOmreOpDvjBCmjfPfOeyxmivZh5w== cloud-user@lab.uc2.io
+    user: cloud-user
+  distribution: rhel-93
+  image_name: ceph-odf
+  image_requests:
+    architecture: x86_64
+    image_type: vsphere-ova
+  packages:
+    - cloud-init
+    - cloud-utils-growpart
+    - insights-client
+    - ipa-client
+    - open-vm-tools
+    - vim-enhanced
+  partitions:
+    - min_size_gb: 20
+      mountpoint: /
+    - min_size_gb: 10
+      mountpoint: /var
+  platform: vmware
+  subscription:
+    base_url: https://cdn.redhat.com/
+    insights: true
+    rhc: true
+    server_url: subscription.rhsm.redhat.com
+vms:
+  - cpus: 2
+    ipa_integration: true
+    memory: 8
+    name: ceph0.lab.uc2.io
+    network:
+      - broadcast: 172.16.10.255
+        cidr: 24
+        dns:
+          - 172.16.10.2
+        gateway: 172.16.10.254
+        interface: eth0
+        ip: 172.16.10.120
+        netmask: 255.255.255.0
+        search:
+          - lab.uc2.io
+        type: static
+        vm_network: Lab Network - 10g
+    vcenter:
+      cluster: r440s
+      datacenter: UC2
+      datastore: r440-1-ssd-local
+      folder: openshift/ceph
+      guest_id: rhel9_64Guest
+    version: 21
+  - cpus: 2
+    ipa_integration: true
+    memory: 8
+    name: ceph1.lab.uc2.io
+    network:
+      - broadcast: 172.16.10.255
+        cidr: 24
+        dns:
+          - 172.16.10.2
+        gateway: 172.16.10.254
+        interface: eth0
+        ip: 172.16.10.121
+        netmask: 255.255.255.0
+        search:
+          - lab.uc2.io
+        type: static
+        vm_network: Lab Network - 10g
+    vcenter:
+      cluster: r440s
+      datacenter: UC2
+      datastore: r440-2-ssd-local
+      folder: openshift/ceph
+      guest_id: rhel9_64Guest
+    version: 21
+  - cpus: 2
+    ipa_integration: true
+    memory: 8
+    name: ceph2.lab.uc2.io
+    network:
+      - broadcast: 172.16.10.255
+        cidr: 24
+        dns:
+          - 172.16.10.2
+        gateway: 172.16.10.254
+        interface: eth0
+        ip: 172.16.10.122
+        netmask: 255.255.255.0
+        search:
+          - lab.uc2.io
+        type: static
+        vm_network: Lab Network - 10g
+    vcenter:
+      cluster: r440s
+      datacenter: UC2
+      datastore: r440-3-ssd-local
+      folder: openshift/ceph
+      guest_id: rhel9_64Guest
+    version: 21

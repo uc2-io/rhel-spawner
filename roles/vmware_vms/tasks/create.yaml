@@ -1,0 +1,25 @@
+- name: Assert ova_local_path is Defined
+  ansible.builtin.assert:
+    that:
+      - ova_local_path is defined
+
+- name: Create VMs
+  community.vmware.vmware_deploy_ovf:
+    cluster: "{{ item.vcenter.cluster }}"
+    datacenter: "{{ item.vcenter.datacenter }}"
+    datastore: "{{ item.vcenter.datastore }}"
+    folder: "/{{ item.vcenter.datacenter }}/vm/{{ item.vcenter.folder }}"
+    hostname: "{{ vcenter_hostname }}"
+    name: "{{ item.name }}"
+    networks: "{u'VM Network':u'{{ item.network[0].vm_network }}'}"
+    ovf: "{{ ova_local_path }}"
+    password: "{{ vcenter_password }}"
+    power_on: false
+    username: "{{ vcenter_username }}"
+    validate_certs: "{{ validate_certs }}"
+  loop: "{{ vms }}"
+
+- name: Configure VMs
+  ansible.builtin.include_tasks:
+    file: configure.yaml
+  loop: "{{ vms }}"

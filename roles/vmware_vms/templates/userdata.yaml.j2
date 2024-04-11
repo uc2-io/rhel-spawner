@@ -1,0 +1,30 @@
+#cloud-config
+chpasswd:
+  expire: false
+disable_network_activation: true
+disable_vmware_customization: false
+growpart:
+  devices: ['/']
+  mode: auto
+network:
+  config: disabled
+runcmd:
+  - |
+    #!/bin/bash
+{% for interface in item.network %}
+    CON=$(nmcli -g general.connection dev sh {{ interface.interface }})
+    nmcli con mod "$CON" ipv4.addresses {{ interface.ip }}/{{ interface.cidr }}
+    nmcli con mod "$CON" ipv4.gateway {{ interface.gateway }}
+    nmcli con mod "$CON" ipv4.dns "{% for dns_server in interface.dns %}{{ dns_server }}{% if not loop.last %} {% endif %}{% endfor %}"
+    nmcli con mod "$CON" ipv4.dns-search "{% for scope in interface.search %}{{ scope }}{% if not loop.last %} {% endif %}{% endfor %}"
+    nmcli con mod "$CON" ipv4.method manual
+    nmcli con mod "$CON" ipv6.method disabled
+    nmcli con up "$CON"
+{% endfor %}
+{% if item.ipa_integration %}
+    ipa-client-install -w "{{ ipa_host_otp }}" --mkhomedir -U
+{% endif %}
+ssh_authorized_keys:
+  - {{ image_properties.cloud_user.public_key }}
+ssh_pwauth: false
+user: {{ image_properties.cloud_user.user }}

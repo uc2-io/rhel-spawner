@@ -1,0 +1,43 @@
+- name: Destroy Virtual Machines and Remove Image Artifacts
+  become: false
+  gather_facts: false
+  hosts: localhost
+  tasks:
+    - name: Clean up ~/.ssh/known_hosts
+      when:
+        - cleanup_known_hosts is defined
+        - cleanup_known_hosts
+      block:
+        - name: Remove Lines w/ Hostname in known_hosts
+          ansible.builtin.lineinfile:
+            dest: ~/.ssh/known_hosts
+            regexp: "^.*{{ item.name }}.*$"
+            state: absent
+          loop: "{{ vms }}"
+
+        - name: Remove Lines w/ IP in known_hosts
+          ansible.builtin.lineinfile:
+            dest: ~/.ssh/known_hosts
+            regexp: "^.*{{ lookup('dig', item.name) }}.*$"
+            state: absent
+          loop: "{{ vms }}"
+
+    - name: Delete Hosts in IPA
+      ansible.builtin.include_role:
+        name: ipa_host
+        tasks_from: destroy
+      loop: "{{ vms }}"
+      when:
+        - item.ipa_integration
+
+    - name: Delete VMs from vCenter
+      ansible.builtin.import_role:
+        name: vmware_vms
+        tasks_from: destroy
+
+    - name: Remove OVA
+      ansible.builtin.file:
+        path: "/tmp/{{ image_properties.image_name }}-downloaded.ova"
+        state: absent
+      tags:
+        - image

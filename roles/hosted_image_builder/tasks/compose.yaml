@@ -1,0 +1,51 @@
+- name: Generate Access Token
+  ansible.builtin.uri:
+    body:
+      client_id: rhsm-api
+      grant_type: refresh_token
+      refresh_token: "{{ offline_token }}"
+    body_format: form-urlencoded
+    method: POST
+    url: "{{ image_builder_sso_url }}"
+  register: access_token_results
+
+- name: Render Compose Payload (VMware)
+  ansible.builtin.set_fact:
+    compose_payload: "{{ lookup('template', 'image-builder-payload-vmware.j2') }}"
+
+- name: Debug compose_payload
+  ansible.builtin.debug:
+    var: compose_payload
+
+- name: Start Compose
+  ansible.builtin.uri:
+    body: "{{ compose_payload | to_json }}"
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ access_token_results.json.access_token }}"
+    method: POST
+    status_code: 201
+    url: "{{ image_builder_api_url }}/compose"
+  register: compose_results
+
+- name: Debug compose_results
+  ansible.builtin.debug:
+    var: compose_results
+
+- name: Set Timestamp Fact
+  ansible.builtin.set_fact:
+    timestamp: "{{ lookup('pipe', 'date -u +\"%Y%m%dT%H%M%SZ\"') }}"
+
+- name: Set compose_id
+  ansible.builtin.set_fact:
+    compose_id: "{{ compose_results.json.id }}"
+
+- name: Debug compose_id
+  ansible.builtin.debug:
+    var: compose_id
+
+- name: Write compose_id to Temporary File
+  ansible.builtin.copy:
+    content: "{{ compose_id }}"
+    dest: "/tmp/{{ image_properties.image_name }}-{{ timestamp }}-compose-id"
+    mode: "0600"
