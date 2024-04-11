@@ -1,0 +1,12 @@
+- name: Destroy Virtual Machines
+  community.vmware.vmware_guest:
+    cluster: "{{ item.vcenter.cluster }}"
+    datacenter: "{{ item.vcenter.datacenter }}"
+    force: true
+    hostname: "{{ vcenter_hostname }}"
+    name: "{{ item.name }}"
+    password: "{{ vcenter_password }}"
+    state: absent
+    username: "{{ vcenter_username }}"
+    validate_certs: "{{ validate_certs }}"
+  loop: "{{ vms }}"

@@ -1,0 +1,67 @@
+- name: Generate Host OTP
+  ansible.builtin.set_fact:
+    ipa_host_otp: "{{ lookup('community.general.random_string', special=false, length=ipa_host_otp_length) }}"
+
+- name: Generate IPA Session Cookie
+  ansible.builtin.uri:
+    body: "user={{ ipa_username }}&password={{ ipa_password }}"
+    headers:
+      Accept: "text/plain"
+      Content-Type: "application/x-www-form-urlencoded"
+      Referer: "https://{{ ipa_hostname }}/ipa"
+    method: POST
+    status_code: 200
+    url: "https://{{ ipa_hostname }}/ipa/session/login_password"
+    validate_certs: "{{ ipa_validate_certs }}"
+  register: ipa_session_results
+
+- name: Debug ipa_session_results
+  ansible.builtin.debug:
+    var: ipa_session_results
+
+- name: Create Host in IPA
+  ansible.builtin.uri:
+    body:
+      method: host_add
+      params:
+        - - "{{ ipa_host_fqdn }}."
+        - ip_address: "{{ ipa_host_ip }}"
+    body_format: json
+    headers:
+      Accept: "application/json"
+      Cookie: "{{ ipa_session_results.set_cookie }}"
+      Referer: "https://{{ ipa_hostname }}/ipa"
+    method: POST
+    status_code: 200
+    url: "https://{{ ipa_hostname }}/ipa/session/json"
+    validate_certs: "{{ ipa_validate_certs }}"
+  failed_when:
+    - ipa_host_add_results.json.error is not none
+  register: ipa_host_add_results
+
+- name: Debug ipa_host_add_results
+  ansible.builtin.debug:
+    var: ipa_host_add_results
+
+- name: Assign OTP to Host
+  ansible.builtin.uri:
+    body:
+      method: host_mod
+      params:
+        - - "{{ ipa_host_fqdn }}"
+        - userpassword: "{{ ipa_host_otp }}"
+    body_format: json
+    headers:
+      Accept: "application/json"
+      Cookie: "{{ ipa_session_results.set_cookie }}"
+      Referer: "https://{{ ipa_hostname }}/ipa"
+    method: POST
+    status_code: 200
+    url: "https://{{ ipa_hostname }}/ipa/session/json"
+    validate_certs: "{{ ipa_validate_certs }}"
+  failed_when: "ipa_host_mod_results.json.error is not none"
+  register: ipa_host_mod_results
+
+- name: Debug ipa_host_mod_results
+  ansible.builtin.debug:
+    var: ipa_host_mod_results

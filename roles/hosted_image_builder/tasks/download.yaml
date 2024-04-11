@@ -1,0 +1,45 @@
+- name: Generate Access Token
+  ansible.builtin.uri:
+    body:
+      client_id: rhsm-api
+      grant_type: refresh_token
+      refresh_token: "{{ offline_token }}"
+    body_format: form-urlencoded
+    method: POST
+    url: "{{ image_builder_sso_url }}"
+  register: access_token_results
+
+- name: Query Compose Status for Download URL
+  ansible.builtin.uri:
+    headers:
+      Authorization: "Bearer {{ access_token_results.json.access_token }}"
+    method: GET
+    status_code: 200
+    url: "{{ image_builder_api_url }}/composes/{{ compose_id }}"
+  failed_when: |
+    (
+      (compose_status_results.json is not defined) and
+      (compose_status_results.json.image_status is not defined) and
+      (compose_status_results.json.image_status.upload_status is not defined) and
+      (compose_status_results.json.image_status.upload_status.options is not defined) and
+      (compose_status_results.json.image_status.upload_status.options.url is not defined)
+    )
+  register: compose_status_results
+
+- name: Debug compose_status_results
+  ansible.builtin.debug:
+    var: compose_status_results
+
+- name: Debug Image Download URL
+  ansible.builtin.debug:
+    msg: "{{ compose_status_results.json.image_status.upload_status.options.url }}"
+
+- name: Set Download Path for OVA
+  ansible.builtin.set_fact:
+    ova_local_path: "/tmp/{{ image_properties.image_name }}-downloaded.ova"
+
+- name: Download Image from Hosted Image Builder
+  ansible.builtin.get_url:
+    dest: "{{ ova_local_path }}"
+    mode: "0600"
+    url: "{{ compose_status_results.json.image_status.upload_status.options.url }}"

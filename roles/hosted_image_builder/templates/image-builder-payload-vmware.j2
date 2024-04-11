@@ -1,0 +1,46 @@
+{
+  "client_id": "api",
+  "customizations": {
+    "filesystem": [
+{% for partition in image_properties.partitions %}
+      {
+        "min_size": {{ partition.min_size_gb * (1024**3) }},
+        "mountpoint": "{{ partition.mountpoint }}"
+{% if not loop.last %}
+      },
+{% else %}
+      }
+{% endif %}
+{% endfor %}
+    ],
+    "packages": [
+{% for package in image_properties.packages %}
+{% if not loop.last %}
+      "{{ package }}",
+{% else %}
+      "{{ package }}"
+{% endif %}
+{% endfor %}
+    ],
+    "subscription": {
+      "activation-key": "{{ activation_key }}",
+      "base-url": "{{ image_properties.subscription.base_url }}",
+      "insights": {{ image_properties.subscription.insights }},
+      "organization": {{ activation_key_org }},
+      "rhc": {{ image_properties.subscription.rhc }},
+      "server-url": "{{ image_properties.subscription.server_url }}"
+    }
+  },
+  "distribution": "{{ image_properties.distribution }}",
+  "image_name": "{{ image_properties.image_name }}",
+  "image_requests": [
+    {
+      "architecture": "{{ image_properties.image_requests.architecture }}",
+      "image_type": "{{ image_properties.image_requests.image_type }}",
+      "upload_request": {
+        "options": {},
+        "type": "aws.s3"
+      }
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+- name: Add NICs to Virtual Machine
+  community.vmware.vmware_guest_network:
+    cluster: "{{ item.vcenter.cluster }}"
+    datacenter: "{{ item.vcenter.datacenter }}"
+    force: true
+    hostname: "{{ vcenter_hostname }}"
+    name: "{{ item.name }}"
+    password: "{{ vcenter_password }}"
+    state: present
+    network_name: "{{ nic.vm_network }}"
+    username: "{{ vcenter_username }}"
+    validate_certs: "{{ validate_certs }}"
+  loop: "{{ item.network }}"
+  loop_control:
+    loop_var: nic
+
+- name: Create Host in IPA
+  ansible.builtin.include_role:
+    name: ipa_host
+    tasks_from: create
+  vars:
+    ipa_host_fqdn: "{{ item.name }}"
+    ipa_host_ip: "{{ item.network[0].ip }}"
+  when:
+    - item.ipa_integration
+
+- name: Reconfigure Virtual Machine
+  community.vmware.vmware_guest:
+    advanced_settings:
+      - key: guestinfo.metadata
+        value: "{{ lookup('template', 'templates/metadata.yaml.j2') | b64encode }}"
+      - key: guestinfo.metadata.encoding
+        value: base64
+      - key: guestinfo.userdata
+        value: "{{ lookup('template', 'templates/userdata.yaml.j2') | b64encode }}"
+      - key: guestinfo.userdata.encoding
+        value: base64
+    cluster: "{{ item.vcenter.cluster }}"
+    datacenter: "{{ item.vcenter.datacenter }}"
+    datastore: "{{ item.vcenter.datastore }}"
+    folder: "/{{ item.vcenter.datacenter }}/vm/{{ item.vcenter.folder }}"
+    guest_id: "{{ item.vcenter.guest_id }}"
+    hardware:
+      memory_mb: "{{ (item.memory * 1024) | int }}"
+      num_cpus: "{{ item.cpus | int }}"
+      version: "{{ item.version | int }}"
+    hostname: "{{ vcenter_hostname }}"
+    name: "{{ item.name }}"
+    password: "{{ vcenter_password }}"
+    username: "{{ vcenter_username }}"
+    validate_certs: "{{ validate_certs }}"
+
+- name: Power On Virtual Machine
+  community.vmware.vmware_guest:
+    cluster: "{{ item.vcenter.cluster }}"
+    datacenter: "{{ item.vcenter.datacenter }}"
+    hostname: "{{ vcenter_hostname }}"
+    name: "{{ item.name }}"
+    password: "{{ vcenter_password }}"
+    state: poweredon
+    username: "{{ vcenter_username }}"
+    validate_certs: "{{ validate_certs }}"

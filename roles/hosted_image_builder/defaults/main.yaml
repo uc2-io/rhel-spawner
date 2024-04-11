@@ -1,0 +1,2 @@
+image_builder_api_url: https://console.redhat.com/api/image-builder/v1
+image_builder_sso_url: https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token

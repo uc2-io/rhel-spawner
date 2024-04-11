@@ -1,0 +1,39 @@
+- name: Generate IPA Session Cookie
+  ansible.builtin.uri:
+    body: "user={{ ipa_username }}&password={{ ipa_password }}"
+    headers:
+      Accept: "text/plain"
+      Content-Type: "application/x-www-form-urlencoded"
+      Referer: "https://{{ ipa_hostname }}/ipa"
+    method: POST
+    status_code: 200
+    url: "https://{{ ipa_hostname }}/ipa/session/login_password"
+    validate_certs: "{{ ipa_validate_certs }}"
+  register: ipa_session_results
+
+- name: Debug ipa_session_results
+  ansible.builtin.debug:
+    var: ipa_session_results
+
+- name: Delete Host from IPA
+  ansible.builtin.uri:
+    body:
+      method: host_del
+      params:
+        - - "{{ item.name }}"
+        - updatedns: true
+    body_format: json
+    headers:
+      Accept: "application/json"
+      Cookie: "{{ ipa_session_results.set_cookie }}"
+      Referer: "https://{{ ipa_hostname }}/ipa"
+    method: POST
+    status_code: 200
+    url: "https://{{ ipa_hostname }}/ipa/session/json"
+    validate_certs: "{{ ipa_validate_certs }}"
+  register: ipa_host_del_results
+
+- name: Debug ipa_host_del_results
+  ansible.builtin.debug:
+    var: ipa_host_del_results
+    verbosity: 1
